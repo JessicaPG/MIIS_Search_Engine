@@ -69,13 +69,8 @@ public class Cosine implements RetrievalModel
 			}
 
 		}
-
 		//Pass the results of the hash to the results structure
-		for (Map.Entry<Integer,  Tuple<Double, Double>> entry : checkDocs.entrySet()) {
-			results.add(new Tuple(entry.getKey(), entry.getValue().item2));
-		}
-
-
+		checkDocs.forEach((k,v) -> results.add(new Tuple(k, v.item2)));
 
 
 		// Sort documents by similarity and return the ranking
