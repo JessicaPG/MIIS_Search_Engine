@@ -2,18 +2,14 @@
 // Distributed under the terms of the MIT License.
 
 package ti;
-
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Implements retrieval in a vector space with the cosine similarity function and a TFxIDF weight formulation.
  */
 public class Cosine implements RetrievalModel
 {
-	public Cosine()
-	{
-		// empty
+	public Cosine() {
 	}
 
 	/**
@@ -24,9 +20,8 @@ public class Cosine implements RetrievalModel
 	{
 		ArrayList<String> terms = docProcessor.processText(queryText);
 		ArrayList<Tuple<Integer, Double>> vectorQuery = computeVector(terms,index);
-		ArrayList<Tuple<Integer, Double>> resultScores = computeScores(vectorQuery,index);
 
-		return resultScores; //return results (docID, similarity)
+		return computeScores(vectorQuery,index); //return results (docID, similarity)
 	}
 
 	/**
@@ -38,9 +33,10 @@ public class Cosine implements RetrievalModel
 	 */
 	protected ArrayList<Tuple<Integer, Double>> computeScores(ArrayList<Tuple<Integer, Double>> queryVector, Index index)
 	{
-		ArrayList<Tuple<Integer, Double>> results = new ArrayList<>();
-		HashMap<Integer, Tuple<Double, Double>> checkDocs = new HashMap<>();
-		double queryWeight = 0, sumNum = 0, termWeight= 0, termNorm = 0, similarity = 0;
+		ArrayList<Tuple<Integer, Double>> results;
+		HashMap<Integer, Tuple<Integer, Double>> checkDocs = new HashMap<>();
+		double queryWeight = 0, sumNum = 0, termWeight= 0, termNorm = 0, queryNorm = 0;
+		queryNorm = calculateNormQuery(queryVector);
 
 		//Iterate over terms in query
 		for (Tuple<Integer, Double> term: queryVector) {
@@ -56,25 +52,22 @@ public class Cosine implements RetrievalModel
 
 				//Check if the doc has already been computated
 				if (checkDocs.get(docs.item1) != null){
-					//update sumNum for the doc already visited
-					checkDocs.get(docs.item1).item1 = sumNum;
 					//update acc similarity of doc already visited
-					checkDocs.get(docs.item1).item2 += checkDocs.get(docs.item1).item1/(termNorm * calculateNormQuery(queryVector));
+					checkDocs.get(docs.item1).item2 += sumNum/(termNorm * queryNorm);
 
 				}else{ //New doc in results
-					similarity = sumNum/(termNorm * calculateNormQuery(queryVector));
-					checkDocs.put(docs.item1, new Tuple(sumNum,similarity));
+					checkDocs.put(docs.item1, new Tuple(docs.item1,sumNum/(termNorm * queryNorm)));
 				}
 
 			}
 
 		}
-		//Pass the results of the hash to the results structure
-		checkDocs.forEach((k,v) -> results.add(new Tuple(k, v.item2)));
 
+		//Transform hash into an arraylist
+		results = new ArrayList(checkDocs.values());
 
 		// Sort documents by similarity and return the ranking
-		Collections.sort(results, new Comparator<Tuple<Integer, Double>>()
+		Collections.sort(results, (o1,o2) -> o2.item2.compareTo(o1.item2));/*new Comparator<Tuple<Integer, Double>>()
 
 		{
 			@Override
@@ -82,7 +75,7 @@ public class Cosine implements RetrievalModel
 			{
 				return o2.item2.compareTo(o1.item2);
 			}
-		});
+		});*/
 		return results;
 	}
 
